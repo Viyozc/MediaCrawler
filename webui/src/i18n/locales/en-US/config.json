@@ -17,6 +17,12 @@
       "description": "Runtime parameters"
     }
   },
+  "preferences": {
+    "title": "Preferences",
+    "button": "Preferences",
+    "open": "Login & Output Settings",
+    "hint": "Login method, save format, and comment options are now in Preferences"
+  },
   "field": {
     "platform": "PLATFORM",
     "platformPlaceholder": "Select platform",
@@ -39,7 +45,7 @@
     "creatorIds": "CREATOR_ID",
     "creatorIdsHint": "Enter creator ID/URL, one per line or comma-separated",
     "creatorIdsPlaceholder": {
-      "bili": "Examples:\n434377496\nhttps://space.bilibili.com/434377496",
+      "bili": "Examples:\n12345678\nhttps://space.bilibili.com/12345678",
       "xhs": "Examples:\nhttps://www.xiaohongshu.com/user/profile/xxx?xsec_token=xxx\n(must include xsec_token)",
       "dy": "Examples:\nMS4wLjABAAAAxxx\nhttps://www.douyin.com/user/MS4wLjABAAAAxxx",
       "wb": "Examples:\n5533390220\nhttps://weibo.com/u/5533390220",

@@ -17,7 +17,7 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 """
-MediaCrawler WebUI API Server
+MediaCrawler Pro WebUI API Server
 Start command: uvicorn api.main:app --port 8080 --reload
 Or: python -m api.main
 """
@@ -32,14 +32,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .routers import crawler_router, data_router, websocket_router
+from .routers import crawler_router, data_router, websocket_router, tasks_router, ai_router
 
 # Project root directory (used for running subprocesses like uv run main.py)
 PROJECT_ROOT = Path(__file__).parent.parent
 
 app = FastAPI(
-    title="MediaCrawler WebUI API",
-    description="API for controlling MediaCrawler from WebUI",
+    title="MediaCrawler Pro WebUI API",
+    description="API for controlling MediaCrawler Pro from WebUI",
     version="1.0.0"
 )
 
@@ -50,9 +50,11 @@ WEBUI_DIR = os.path.join(os.path.dirname(__file__), "webui")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Vite dev server
+        "http://localhost:5173",  # Vite dev server (default)
+        "http://localhost:5174",  # Vite dev server (when 5173 busy, used by electron MVP)
         "http://localhost:3000",  # Backup port
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
@@ -64,6 +66,8 @@ app.add_middleware(
 app.include_router(crawler_router, prefix="/api")
 app.include_router(data_router, prefix="/api")
 app.include_router(websocket_router, prefix="/api")
+app.include_router(tasks_router, prefix="/api")
+app.include_router(ai_router, prefix="/api")
 
 
 @app.get("/")
@@ -73,7 +77,7 @@ async def serve_frontend():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {
-        "message": "MediaCrawler WebUI API",
+        "message": "MediaCrawler Pro WebUI API",
         "version": "1.0.0",
         "docs": "/docs",
         "note": "WebUI not found, please build it first: cd webui && npm run build"
@@ -87,16 +91,22 @@ async def health_check():
 
 @app.get("/api/env/check")
 async def check_environment():
-    """Check if MediaCrawler environment is configured correctly"""
+    """Check if MediaCrawler Pro environment is configured correctly"""
     try:
-        # Run uv run main.py --help command to check environment
+        # 优先用 MEDIACRAWLER_CLI 二进制（桌面模式），否则 fallback 到 uv run main.py
         # Use PROJECT_ROOT so it works regardless of where uvicorn was started
+        cli = os.environ.get("MEDIACRAWLER_CLI")
+        if cli and os.path.isfile(cli):
+            cmd = [cli, "--help"]
+        else:
+            cmd = ["uv", "run", "main.py", "--help"]
+
         if sys.platform == "win32":
             loop = asyncio.get_running_loop()
             process = await loop.run_in_executor(
                 None,
                 lambda: subprocess.run(
-                    ["uv", "run", "main.py", "--help"],
+                    cmd,
                     capture_output=True,
                     timeout=30.0,
                     cwd=str(PROJECT_ROOT)
@@ -105,7 +115,7 @@ async def check_environment():
             stdout, stderr = process.stdout, process.stderr  # bytes
         else:
             process = await asyncio.create_subprocess_exec(
-                "uv", "run", "main.py", "--help",
+                *cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=str(PROJECT_ROOT)  # Project root directory
@@ -117,7 +127,7 @@ async def check_environment():
         if process.returncode == 0:
             return {
                 "success": True,
-                "message": "MediaCrawler environment configured correctly",
+                "message": "MediaCrawler Pro environment configured correctly",
                 "output": stdout.decode("utf-8", errors="ignore")[:500]  # Truncate to first 500 characters
             }
         else:
@@ -136,8 +146,8 @@ async def check_environment():
     except FileNotFoundError:
         return {
             "success": False,
-            "message": "uv command not found",
-            "error": "Please ensure uv is installed and configured in system PATH"
+            "message": "Runner command not found",
+            "error": "Neither MEDIACRAWLER_CLI env var nor `uv` is available. Set MEDIACRAWLER_CLI or install uv in PATH."
         }
     except Exception as e:
         return {

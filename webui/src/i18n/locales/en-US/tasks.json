@@ -1,0 +1,51 @@
+{
+  "title": "Task History",
+  "empty": "No tasks yet. Run a crawl to get started.",
+  "empty_filtered": "No tasks match these filters.",
+  "filter": {
+    "status": "Status",
+    "all": "All",
+    "platform": "Platform"
+  },
+  "status": {
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "stopped": "Stopped"
+  },
+  "list": {
+    "platform": "Platform",
+    "type": "Type",
+    "started": "Started",
+    "duration": "Duration",
+    "records": "Records",
+    "actions": "Actions"
+  },
+  "detail": {
+    "title": "Task Detail",
+    "config": "Configuration",
+    "output_files": "Output Files",
+    "no_files": "No output files",
+    "record_counts": "Record Counts",
+    "view_logs": "View Logs",
+    "close_logs": "Close Logs",
+    "chat_with_ai": "Chat with AI",
+    "delete": "Delete Task",
+    "delete_confirm": "Delete this task record? Data files will not be removed.",
+    "exit_code": "Exit Code",
+    "ended_at": "Ended At",
+    "error": "Error"
+  },
+  "logs": {
+    "title": "Task Logs",
+    "empty": "No logs",
+    "loading": "Loading..."
+  },
+  "actions": {
+    "preview": "Preview Data",
+    "download": "Download",
+    "chat": "AI Chat",
+    "no_rows": "No data rows",
+    "showing": "Showing {{shown}} / {{total}} rows"
+  }
+}

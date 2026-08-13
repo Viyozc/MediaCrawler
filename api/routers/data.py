@@ -18,16 +18,33 @@
 
 import os
 import json
+import asyncio
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/data", tags=["data"])
 
+
+def _resolve_data_dir() -> Path:
+    """数据目录必须与爬虫写入位置一致。
+
+    爬虫把数据写到 cwd 下的 data/<platform>/...；
+    桌面模式下 Electron 注入 MEDIACRAWLER_DATA_DIR 并由 runtime_patches chdir 过去，
+    所以数据落在 <MEDIACRAWLER_DATA_DIR>/data/。
+    开发模式（未注入该变量）回退到项目根的 data/。
+    """
+    env_data_dir = os.environ.get("MEDIACRAWLER_DATA_DIR")
+    if env_data_dir:
+        return Path(env_data_dir) / "data"
+    return Path(__file__).parent.parent.parent / "data"
+
+
 # Data directory
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
+DATA_DIR = _resolve_data_dir()
 
 
 def get_file_info(file_path: Path) -> dict:
@@ -228,3 +245,134 @@ async def get_data_stats():
                 continue
 
     return stats
+
+
+# ============================ Wordcloud ============================
+
+
+class WordcloudRequest(BaseModel):
+    """Generate a wordcloud from a comments file.
+
+    Either file_path (relative to DATA_DIR) or task_id must be provided.
+    When task_id is used, the first output file with 'comments' in its
+    name is selected.
+    """
+    file_path: Optional[str] = None
+    task_id: Optional[str] = None
+
+
+def _read_comments_file(full_path: Path) -> list[dict]:
+    """Read a comments file (json or jsonl) and normalize to dicts."""
+    suffix = full_path.suffix.lower()
+    if suffix == ".jsonl":
+        rows = []
+        with open(full_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        rows.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+        return rows
+    if suffix == ".json":
+        with open(full_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+        return []
+    if suffix == ".csv":
+        import csv
+        with open(full_path, "r", encoding="utf-8") as f:
+            return list(csv.DictReader(f))
+    raise HTTPException(status_code=400, detail=f"Unsupported file type for wordcloud: {suffix}")
+
+
+def _filter_comment_content(rows: list[dict]) -> list[dict]:
+    """Extract content-like field from each row."""
+    filtered = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        text = row.get("content") or row.get("comment_text") or row.get("text") or ""
+        if text:
+            filtered.append({"content": text})
+    return filtered
+
+
+@router.post("/wordcloud")
+async def generate_wordcloud(req: WordcloudRequest):
+    """Generate a wordcloud PNG from a comments file.
+
+    Reuses tools.words.AsyncWordCloudGenerator. Output PNG lands at
+    <DATA_DIR>/<platform>/words/<stem>_word_cloud.png alongside a
+    <stem>_word_freq.json frequencies file.
+    """
+    # Resolve target file path
+    if req.file_path:
+        target = DATA_DIR / req.file_path
+    elif req.task_id:
+        # Lazy import to avoid circular (task_registry imports from schemas)
+        from ..services.task_registry import task_registry
+        rec = await task_registry.get_task(req.task_id)
+        if not rec:
+            raise HTTPException(status_code=404, detail="Task not found")
+        output_files = rec.get("output_files") or []
+        candidates = [f for f in output_files if "comments" in f.get("path", "").lower()]
+        if not candidates:
+            raise HTTPException(status_code=404, detail="Task has no comments output file")
+        target = DATA_DIR / candidates[0]["path"]
+    else:
+        raise HTTPException(status_code=400, detail="file_path or task_id is required")
+
+    if not target.exists() or not target.is_file():
+        raise HTTPException(status_code=404, detail=f"File not found: {req.file_path or target}")
+
+    # Security check: ensure within DATA_DIR
+    try:
+        target.resolve().relative_to(DATA_DIR.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    rows = await asyncio.to_thread(_read_comments_file, target)
+    filtered = _filter_comment_content(rows)
+    if not filtered:
+        raise HTTPException(status_code=400, detail="No comment content found in file")
+
+    # Output prefix: <DATA_DIR>/<platform>/words/<crawler_type>_comments_<date>
+    # For a path like "bili/jsonl/search_comments_20250731.jsonl" we infer:
+    #   platform = first path segment ("bili")
+    #   stem = filename without suffix
+    rel = target.relative_to(DATA_DIR)
+    platform = rel.parts[0] if len(rel.parts) > 1 else "data"
+    stem = target.stem  # e.g. search_comments_20250731
+    words_dir = DATA_DIR / platform / "words"
+    await asyncio.to_thread(lambda: words_dir.mkdir(parents=True, exist_ok=True))
+    save_prefix = str(words_dir / stem)
+
+    # Generate (runs jieba + wordcloud + matplotlib — heavy, in thread)
+    try:
+        from tools.words import AsyncWordCloudGenerator
+        generator = AsyncWordCloudGenerator()
+        await asyncio.to_thread(
+            lambda: None  # ensure module load happens in main thread first
+        )
+        await generator.generate_word_frequency_and_cloud(filtered, save_prefix)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Wordcloud generation failed: {e}")
+
+    png_path = f"{save_prefix}_word_cloud.png"
+    freq_path = f"{save_prefix}_word_freq.json"
+    png_rel = str(Path(png_path).relative_to(DATA_DIR))
+    freq_rel = str(Path(freq_path).relative_to(DATA_DIR))
+
+    return {
+        # preview=false so /files/{path} returns the raw bytes via FileResponse
+        # instead of attempting structured preview (which only handles json/csv/xlsx)
+        "image_url": f"/api/data/files/{png_rel}?preview=false",
+        "freq_url": f"/api/data/files/{freq_rel}",
+        "image_path": png_rel,
+        "comment_count": len(filtered),
+    }

@@ -1,0 +1,35 @@
+{
+  "settings": {
+    "title": "AI Settings",
+    "open": "AI Settings",
+    "configured": "Configured",
+    "not_configured": "Not configured",
+    "provider": "Provider",
+    "base_url": "Base URL",
+    "api_key": "API Key",
+    "api_key_hint": "Stored locally only, never uploaded. Used solely to call the LLM.",
+    "model": "Model",
+    "temperature": "Temperature",
+    "max_tokens": "Max Tokens",
+    "system_prompt_override": "Custom System Prompt (optional)",
+    "save": "Save",
+    "saved": "Settings saved",
+    "save_failed": "Save failed"
+  },
+  "chat": {
+    "title": "Agent Chat",
+    "placeholder": "Ask about this task's data...",
+    "send": "Send",
+    "include_full_data": "Full data",
+    "sample_size": "Sample size",
+    "history_loaded": "Chat history loaded",
+    "not_configured": "AI is not configured yet. Click below to set up your API key.",
+    "open_settings": "Open AI Settings",
+    "streaming": "AI is responding...",
+    "error": "Error: {{message}}",
+    "you": "You",
+    "assistant": "Assistant",
+    "clear": "Clear chat",
+    "clear_confirm": "Clear chat history for this task?"
+  }
+}

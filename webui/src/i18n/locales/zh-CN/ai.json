@@ -1,0 +1,35 @@
+{
+  "settings": {
+    "title": "AI 设置",
+    "open": "AI 设置",
+    "configured": "已配置",
+    "not_configured": "未配置",
+    "provider": "服务商",
+    "base_url": "Base URL",
+    "api_key": "API Key",
+    "api_key_hint": "保存在本地，不上传。仅用于调用 LLM。",
+    "model": "模型",
+    "temperature": "温度",
+    "max_tokens": "最大 Tokens",
+    "system_prompt_override": "自定义 System Prompt（可选）",
+    "save": "保存",
+    "saved": "设置已保存",
+    "save_failed": "保存失败"
+  },
+  "chat": {
+    "title": "Agent Chat",
+    "placeholder": "对这份任务数据提问...",
+    "send": "发送",
+    "include_full_data": "完整数据",
+    "sample_size": "样本行数",
+    "history_loaded": "已加载历史对话",
+    "not_configured": "尚未配置 AI。点击下方按钮填写 API Key。",
+    "open_settings": "打开 AI 设置",
+    "streaming": "AI 正在回复...",
+    "error": "出错了：{{message}}",
+    "you": "你",
+    "assistant": "助手",
+    "clear": "清空对话",
+    "clear_confirm": "清空当前任务的对话历史？"
+  }
+}

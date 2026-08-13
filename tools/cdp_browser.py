@@ -30,6 +30,7 @@ from playwright.async_api import Browser, BrowserContext, Playwright
 import config
 from tools.browser_launcher import BrowserLauncher
 from tools import utils
+from config._paths import resource_path
 
 
 class CDPBrowserManager:
@@ -397,7 +398,9 @@ class CDPBrowserManager:
 
         return browser_context
 
-    async def add_stealth_script(self, script_path: str = "libs/stealth.min.js"):
+    async def add_stealth_script(self, script_path: str = None):
+        if script_path is None:
+            script_path = resource_path("libs/stealth.min.js")
         """
         Add anti-detection script
         """

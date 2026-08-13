@@ -1,8 +1,13 @@
-import { Bug, Wifi, AlertTriangle, Github } from 'lucide-react'
+import { useState } from 'react'
+import { Bug, Wifi, AlertTriangle, Github, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useCrawlerStore } from '@/store/crawlerStore'
 import { useCrawlerStatus } from '@/hooks/useCrawler'
+import { aiApi } from '@/lib/api'
+import { AiSettingsPanel } from '@/components/ai/AiSettingsPanel'
 import { LanguageSwitch } from './LanguageSwitch'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -13,10 +18,22 @@ interface SidebarProps {
 export function Sidebar({ onShowDisclaimer }: SidebarProps) {
   const { t } = useTranslation()
   const { t: tLicense } = useTranslation('license')
+  const { t: tAI } = useTranslation('ai')
   const status = useCrawlerStore((state) => state.status)
+  const [aiOpen, setAiOpen] = useState(false)
 
   // Poll status
   useCrawlerStatus()
+
+  // Light-touch AI settings check (for configured indicator)
+  useQuery({
+    queryKey: ['aiSettings'],
+    queryFn: async () => {
+      const { data } = await aiApi.getSettings()
+      return data
+    },
+    staleTime: 60_000,
+  })
 
   const isRunning = status === 'running'
 
@@ -27,10 +44,10 @@ export function Sidebar({ onShowDisclaimer }: SidebarProps) {
         <div className="flex items-center gap-3">
           <Bug className="w-5 h-5 text-cyber-neon-cyan" />
           <span className="font-mono font-bold text-cyber-text-primary tracking-wider text-sm">
-            MediaCrawler
+            MediaCrawler Pro
           </span>
           <a
-            href="https://github.com/NanmiCoder/MediaCrawler"
+            href="https://github.com/Viyozc/MediaCrawler-Pro"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-cyber-border-subtle hover:border-cyber-neon-cyan hover:shadow-glow-cyan-sm transition-all bg-cyber-bg-tertiary"
@@ -66,6 +83,18 @@ export function Sidebar({ onShowDisclaimer }: SidebarProps) {
 
         {/* Right: Actions and Status */}
         <div className="flex items-center gap-3">
+          {/* AI Settings */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-mono text-xs text-cyber-neon-cyan hover:bg-cyber-neon-cyan/10"
+            onClick={() => setAiOpen(true)}
+            title={tAI('settings.open')}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden md:inline ml-1">{tAI('settings.title')}</span>
+          </Button>
+
           {/* Theme Toggle */}
           <ThemeToggle />
           {/* Language Switch */}
@@ -83,6 +112,8 @@ export function Sidebar({ onShowDisclaimer }: SidebarProps) {
           </div>
         </div>
       </div>
+
+      <AiSettingsPanel open={aiOpen} onOpenChange={setAiOpen} />
     </header>
   )
 }

@@ -12,10 +12,11 @@
   "confirm": "I understand and agree to the above terms",
   "decline": "Disagree, Exit",
   "author": {
-    "name": "Relakkes (阿江)",
-    "tagline": "40K+ Star Open Source Author",
-    "description": "Author of MediaCrawler (40K stars), focused on crawler tech and AI Agent knowledge sharing",
-    "support": "If you find this project helpful, please follow the author on social media",
-    "slogan": "Open source is hard, please star ⭐"
+    "name": "MediaCrawler Pro",
+    "tagline": "Upgraded edition of upstream MediaCrawler",
+    "description": "Maintained upgrade of open-source MediaCrawler with WebUI, tasks, AI Chat, and MCP",
+    "support": "If you find this project helpful, please star the repository",
+    "slogan": "Learn in the open — star if it helps ⭐",
+    "upstream": "Thanks to upstream MediaCrawler"
   }
 }

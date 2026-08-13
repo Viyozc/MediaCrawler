@@ -1,0 +1,14 @@
+{
+  "name": "mediacrawler-pro-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Electron wrapper for MediaCrawler Pro (WebUI + FastAPI).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

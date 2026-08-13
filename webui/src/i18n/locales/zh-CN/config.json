@@ -17,6 +17,12 @@
       "description": "运行时参数"
     }
   },
+  "preferences": {
+    "title": "偏好设置",
+    "button": "偏好设置",
+    "open": "登录与输出配置",
+    "hint": "登录方式、保存格式、评论抓取等选项已移至偏好设置"
+  },
   "field": {
     "platform": "平台",
     "platformPlaceholder": "选择平台",
@@ -39,7 +45,7 @@
     "creatorIds": "创作者 ID",
     "creatorIdsHint": "输入创作者的ID/URL，每行一个或用逗号分隔",
     "creatorIdsPlaceholder": {
-      "bili": "示例:\n434377496\nhttps://space.bilibili.com/434377496",
+      "bili": "示例:\n12345678\nhttps://space.bilibili.com/12345678",
       "xhs": "示例:\nhttps://www.xiaohongshu.com/user/profile/xxx?xsec_token=xxx\n(必须包含xsec_token参数)",
       "dy": "示例:\nMS4wLjABAAAAxxx\nhttps://www.douyin.com/user/MS4wLjABAAAAxxx",
       "wb": "示例:\n5533390220\nhttps://weibo.com/u/5533390220",

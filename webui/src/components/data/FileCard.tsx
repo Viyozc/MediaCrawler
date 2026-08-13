@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileJson, FileSpreadsheet, FileText, Download, Eye } from 'lucide-react'
+import { FileJson, FileSpreadsheet, FileText, Download, Eye, Cloud } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { dataApi } from '@/lib/api'
 import { formatFileSize, formatDateTime } from '@/lib/utils'
 import { DataPreviewDialog } from './preview/DataPreviewDialog'
+import { WordcloudDialog } from './WordcloudDialog'
 import type { DataFile } from '@/types/crawler'
 
 interface FileCardProps {
@@ -46,6 +47,7 @@ const fileStyles: Record<string, { icon: string; border: string; badge: string }
 export function FileCard({ file }: FileCardProps) {
   const { t } = useTranslation('data')
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [wordcloudOpen, setWordcloudOpen] = useState(false)
 
   const Icon = fileIcons[file.type] || FileText
   const styles = fileStyles[file.type] || {
@@ -56,6 +58,10 @@ export function FileCard({ file }: FileCardProps) {
 
   // 检查是否支持预览
   const isPreviewable = ['json', 'csv', 'xlsx', 'xls'].includes(file.type.toLowerCase())
+  // Wordcloud only for comments files (json/jsonl/csv)
+  const isWordcloudable =
+    file.name.toLowerCase().includes('comments') &&
+    ['json', 'csv'].includes(file.type.toLowerCase())
 
   const handleDownload = () => {
     const url = dataApi.getDownloadUrl(file.path)
@@ -105,6 +111,18 @@ export function FileCard({ file }: FileCardProps) {
                   {t('file.preview')}
                 </Button>
               )}
+              {isWordcloudable && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 font-mono text-cyber-neon-yellow hover:text-cyber-neon-yellow hover:bg-cyber-neon-yellow/10"
+                  onClick={() => setWordcloudOpen(true)}
+                  title={t('wordcloud.button', { defaultValue: 'Wordcloud' })}
+                >
+                  <Cloud className="w-3 h-3 mr-1" />
+                  {t('wordcloud.button', { defaultValue: 'Wordcloud' })}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -125,6 +143,15 @@ export function FileCard({ file }: FileCardProps) {
           file={file}
           open={previewOpen}
           onOpenChange={setPreviewOpen}
+        />
+      )}
+
+      {/* 词云对话框 */}
+      {isWordcloudable && (
+        <WordcloudDialog
+          file={file}
+          open={wordcloudOpen}
+          onOpenChange={setWordcloudOpen}
         />
       )}
     </>

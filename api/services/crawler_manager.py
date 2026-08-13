@@ -24,7 +24,9 @@ from typing import Optional, List
 from datetime import datetime
 from pathlib import Path
 
-from ..schemas import CrawlerStartRequest, LogEntry
+from ..schemas import CrawlerStartRequest, LogEntry, TaskStatus
+from .task_registry import task_registry
+from .output_scanner import scan_output_files, infer_record_counts
 
 
 class CrawlerManager:
@@ -43,6 +45,9 @@ class CrawlerManager:
         self._project_root = Path(__file__).parent.parent.parent
         # Log queue - for pushing to WebSocket
         self._log_queue: Optional[asyncio.Queue] = None
+        # Task history integration
+        self._current_task_id: Optional[str] = None
+        self._log_file_handle = None
 
     @property
     def logs(self) -> List[LogEntry]:
@@ -57,9 +62,10 @@ class CrawlerManager:
     def _create_log_entry(self, message: str, level: str = "info") -> LogEntry:
         """Create log entry"""
         self._log_id += 1
+        ts = datetime.now()
         entry = LogEntry(
             id=self._log_id,
-            timestamp=datetime.now().strftime("%H:%M:%S"),
+            timestamp=ts.strftime("%H:%M:%S"),
             level=level,
             message=message
         )
@@ -67,7 +73,34 @@ class CrawlerManager:
         # Keep last 500 logs
         if len(self._logs) > 500:
             self._logs = self._logs[-500:]
+        # Persist to full log file for task history
+        if self._log_file_handle is not None:
+            try:
+                self._log_file_handle.write(
+                    f"{ts.isoformat(timespec='seconds')}\t{level}\t{message}\n"
+                )
+                self._log_file_handle.flush()
+            except Exception:
+                pass
         return entry
+
+    def _open_task_log(self, task_id: str) -> None:
+        """Open <data_dir>/tasks/<task_id>.log for append."""
+        from .task_registry import _resolve_data_dir
+        try:
+            tasks_dir = _resolve_data_dir() / "tasks"
+            tasks_dir.mkdir(parents=True, exist_ok=True)
+            self._log_file_handle = open(tasks_dir / f"{task_id}.log", "a", encoding="utf-8")
+        except Exception:
+            self._log_file_handle = None
+
+    def _close_task_log(self) -> None:
+        if self._log_file_handle is not None:
+            try:
+                self._log_file_handle.close()
+            except Exception:
+                pass
+            self._log_file_handle = None
 
     async def _push_log(self, entry: LogEntry):
         """Push log to queue"""
@@ -118,6 +151,12 @@ class CrawlerManager:
             await self._push_log(entry)
 
             try:
+                # cwd: prefer MEDIACRAWLER_DATA_DIR so the crawler subprocess
+                # writes its `data/<platform>/...` tree under the same root that
+                # output_scanner and data routers look at. Fall back to project
+                # root in dev mode (where _resolve_data_dir also returns it).
+                env_data_dir = os.environ.get("MEDIACRAWLER_DATA_DIR")
+                cwd = env_data_dir if env_data_dir else str(self._project_root)
                 # Start subprocess
                 self.process = subprocess.Popen(
                     cmd,
@@ -126,13 +165,20 @@ class CrawlerManager:
                     text=True,
                     encoding='utf-8',
                     bufsize=1,
-                    cwd=str(self._project_root),
+                    cwd=cwd,
                     env={**os.environ, "PYTHONUNBUFFERED": "1"}
                 )
 
                 self.status = "running"
                 self.started_at = datetime.now()
                 self.current_config = config
+
+                # Create task record (best-effort; never block crawl on history)
+                try:
+                    self._current_task_id = await task_registry.create_task(config)
+                    self._open_task_log(self._current_task_id)
+                except Exception as e:
+                    self._current_task_id = None
 
                 entry = self._create_log_entry(
                     f"Crawler started on platform: {config.platform.value}, type: {config.crawler_type.value}",
@@ -183,6 +229,7 @@ class CrawlerManager:
                 await self._push_log(entry)
 
             self.status = "idle"
+            await self._finalize_current_task(status=TaskStatus.STOPPED, exit_code=-1)
             self.current_config = None
 
             # Cancel log reading task
@@ -203,8 +250,16 @@ class CrawlerManager:
         }
 
     def _build_command(self, config: CrawlerStartRequest) -> list:
-        """Build main.py command line arguments"""
-        cmd = ["uv", "run", "python", "main.py"]
+        """Build main.py command line arguments.
+
+        优先用 MEDIACRAWLER_CLI 环境变量指向的打包二进制（桌面模式），
+        否则 fallback 到 `uv run python main.py`（开发模式）。
+        """
+        cli = os.environ.get("MEDIACRAWLER_CLI")
+        if cli and os.path.isfile(cli):
+            cmd = [cli]
+        else:
+            cmd = ["uv", "run", "python", "main.py"]
 
         cmd.extend(["--platform", config.platform.value])
         cmd.extend(["--lt", config.login_type.value])
@@ -276,11 +331,51 @@ class CrawlerManager:
                     entry = self._create_log_entry(f"Crawler exited with code: {exit_code}", "warning")
                 await self._push_log(entry)
                 self.status = "idle"
+                await self._finalize_current_task(
+                    status=TaskStatus.COMPLETED if exit_code == 0 else TaskStatus.FAILED,
+                    exit_code=exit_code,
+                )
 
         except asyncio.CancelledError:
             pass
         except Exception as e:
             entry = self._create_log_entry(f"Error reading output: {str(e)}", "error")
+            await self._push_log(entry)
+            await self._finalize_current_task(status=TaskStatus.FAILED, error=str(e))
+
+    async def _finalize_current_task(
+        self,
+        status: TaskStatus,
+        exit_code: Optional[int] = None,
+        error: Optional[str] = None,
+    ) -> None:
+        """Scan output files and finalize the task record. Best-effort."""
+        task_id = self._current_task_id
+        started = self.started_at
+        cfg = self.current_config
+        self._current_task_id = None
+        self._close_task_log()
+        if not task_id or started is None or cfg is None:
+            return
+        try:
+            ended = datetime.now()
+            output_files = await scan_output_files(
+                platform=cfg.platform.value,
+                started_at=started,
+                ended_at=ended,
+            )
+            record_counts = infer_record_counts(output_files)
+            await task_registry.finalize_task(
+                task_id,
+                status=status,
+                exit_code=exit_code,
+                output_files=output_files,
+                record_counts=record_counts,
+                error=error,
+            )
+        except Exception as e:
+            # Don't let history failure surface to UI as a crawl failure
+            entry = self._create_log_entry(f"Task history finalize failed: {e}", "warning")
             await self._push_log(entry)
 
 

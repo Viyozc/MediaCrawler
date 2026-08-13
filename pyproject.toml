@@ -1,8 +1,8 @@
 [project]
-name = "mediacrawler"
-author = "程序员阿江-Relakkes <relakkes@gmail.com>"
+name = "mediacrawler-pro"
+authors = [{ name = "Viyozc" }]
 version = "0.1.0"
-description = "A social media crawler project, support Xiaohongshu, Weibo, Zhihu, Bilibili, Douyin, BaiduTieBa etc."
+description = "MediaCrawler Pro — upgraded edition of MediaCrawler with WebUI, desktop, tasks, AI chat, and MCP."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -40,8 +40,15 @@ dependencies = [
     "websockets>=15.0.1",
     "asyncpg>=0.31.0",
     "xhshow>=0.2.0",
+    "openai>=1.40.0",
+    "mcp>=1.0.0",
 ]
 
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
+
+[project.optional-dependencies]
+build = [
+    "pyinstaller>=6.3",
+]

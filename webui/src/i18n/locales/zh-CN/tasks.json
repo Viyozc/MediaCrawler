@@ -1,0 +1,51 @@
+{
+  "title": "任务历史",
+  "empty": "暂无任务，运行一次爬虫试试",
+  "empty_filtered": "没有符合条件的任务",
+  "filter": {
+    "status": "状态",
+    "all": "全部",
+    "platform": "平台"
+  },
+  "status": {
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "stopped": "已停止"
+  },
+  "list": {
+    "platform": "平台",
+    "type": "类型",
+    "started": "开始时间",
+    "duration": "耗时",
+    "records": "记录数",
+    "actions": "操作"
+  },
+  "detail": {
+    "title": "任务详情",
+    "config": "配置",
+    "output_files": "输出文件",
+    "no_files": "无输出文件",
+    "record_counts": "记录统计",
+    "view_logs": "查看日志",
+    "close_logs": "关闭日志",
+    "chat_with_ai": "和 AI 对话",
+    "delete": "删除任务",
+    "delete_confirm": "删除此任务记录？数据文件不会被删除。",
+    "exit_code": "退出码",
+    "ended_at": "结束时间",
+    "error": "错误信息"
+  },
+  "logs": {
+    "title": "任务日志",
+    "empty": "无日志",
+    "loading": "加载中..."
+  },
+  "actions": {
+    "preview": "结果预览",
+    "download": "下载结果",
+    "chat": "AI 对话",
+    "no_rows": "无数据行",
+    "showing": "显示 {{shown}} / {{total}} 行"
+  }
+}

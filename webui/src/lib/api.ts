@@ -78,6 +78,11 @@ export const dataApi = {
     api.get<FilePreviewResponse>('/data/files/' + path, { params: { preview: true, limit } }),
   getStats: () => api.get('/data/stats'),
   getDownloadUrl: (path: string) => `/api/data/download/${path}`,
+  generateWordcloud: (body: { file_path?: string; task_id?: string }) =>
+    api.post<{ image_url: string; freq_url: string; image_path: string; comment_count: number }>(
+      '/data/wordcloud',
+      body,
+    ),
 }
 
 export const configApi = {
@@ -100,5 +105,41 @@ export interface EnvCheckResult {
 export const envApi = {
   check: () => api.get<EnvCheckResult>('/env/check'),
 }
+
+// ----- Task History -----
+import type {
+  TaskRecord,
+  TaskListResponse,
+  TaskListParams,
+} from '@/types/task'
+
+export type { TaskRecord, TaskListResponse, TaskListParams } from '@/types/task'
+
+export const taskApi = {
+  list: (params: TaskListParams = {}) =>
+    api.get<TaskListResponse>('/tasks', { params }),
+  get: (id: string) => api.get<TaskRecord>(`/tasks/${id}`),
+  delete: (id: string) => api.delete<{ deleted: boolean }>(`/tasks/${id}`),
+  getLogs: (id: string) => api.get<{ logs: string; path: string }>(`/tasks/${id}/logs`),
+}
+
+// ----- AI -----
+import type {
+  AISettings,
+  AISettingsResponse,
+  ChatHistoryResponse,
+} from '@/types/ai'
+
+export type { AISettings, AISettingsResponse, ChatHistoryResponse, ChatMessage } from '@/types/ai'
+
+export const aiApi = {
+  getSettings: () => api.get<AISettingsResponse>('/ai/settings'),
+  saveSettings: (settings: AISettings) =>
+    api.put<AISettingsResponse>('/ai/settings', settings),
+  getChatHistory: (taskId: string) =>
+    api.get<ChatHistoryResponse>(`/ai/chat/${taskId}/history`),
+}
+
+export const AI_CHAT_URL = '/api/ai/chat'
 
 export default api

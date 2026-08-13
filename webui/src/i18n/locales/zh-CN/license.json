@@ -12,10 +12,11 @@
   "confirm": "我已知晓并同意上述条款",
   "decline": "不同意，退出",
   "author": {
-    "name": "程序员阿江-Relakkes",
-    "tagline": "40K+ Star 开源项目作者",
-    "description": "40K开源项目MediaCrawler作者，专注爬虫技术和AI Agent知识分享",
-    "support": "如果觉得项目有帮助，欢迎关注作者的社交媒体账号",
-    "slogan": "开源不易，求个关注 ⭐"
+    "name": "MediaCrawler Pro",
+    "tagline": "上游 MediaCrawler 的升级版",
+    "description": "基于开源 MediaCrawler 维护的升级版，含 WebUI、任务中心、AI Chat 与 MCP",
+    "support": "如果觉得项目有帮助，欢迎给仓库点个 Star",
+    "slogan": "开源学习，欢迎 Star ⭐",
+    "upstream": "致谢上游 MediaCrawler"
   }
 }
