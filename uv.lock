@@ -1095,7 +1095,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mediacrawler"
+name = "mediacrawler-pro"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

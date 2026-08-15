@@ -130,9 +130,12 @@ async def chat(req: ChatRequest):
                     rec = await task_registry.update_output_files(
                         req.task_id, files, counts
                     ) or rec
-            except Exception:
+            except Exception as e:
                 # Best-effort; chat proceeds with whatever context we have
-                pass
+                import logging
+                logging.getLogger(__name__).warning(
+                    "AI chat output re-scan failed for %s: %s", req.task_id, e
+                )
 
     # Build context from task record
     from ..schemas import TaskRecord

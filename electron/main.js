@@ -146,15 +146,24 @@ async function startBackend(preferredPort) {
   }
   const port = await findFreePort(preferredPort);
 
-  // 桌面分发模式：优先用 PyInstaller 打包的二进制
-  if (exists(API_BINARY)) {
+  // Packaged binary only when explicitly requested. Stale dist/ binaries otherwise
+  // shadow source fixes (e.g. platform dir mapping) and confuse local `npm start`.
+  const usePackaged =
+    process.env.MEDIACRAWLER_USE_PACKAGED === '1' && exists(API_BINARY);
+
+  if (usePackaged) {
     console.log(`[backend] using packaged binary: ${API_BINARY}`);
     spawnChild(API_BINARY, ['--port', String(port)], {
       cwd: DIST_DIR,
       tag: 'backend',
     });
   } else {
-    // 开发模式：fallback 到 uv run uvicorn
+    if (exists(API_BINARY) && process.env.MEDIACRAWLER_USE_PACKAGED !== '1') {
+      console.log(
+        '[backend] dist/mediacrawler-api present but ignored; set MEDIACRAWLER_USE_PACKAGED=1 to use it',
+      );
+    }
+    console.log('[backend] using uv run uvicorn (source)');
     spawnChild('uv', ['run', 'uvicorn', 'api.main:app', '--port', String(port)], {
       cwd: PROJECT_ROOT,
       tag: 'backend',

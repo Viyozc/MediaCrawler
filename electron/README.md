@@ -24,7 +24,8 @@ npm start
 
 Electron 启动后会自动：
 1. 选一个空闲 API 端口（默认从 8081 开始递增）
-2. 在项目根目录 spawn `uv run uvicorn api.main:app --port <apiPort>`
+2. 默认用源码后端：`uv run uvicorn api.main:app --port <apiPort>`
+   - 若要用 `dist/mediacrawler-api` 打包二进制，需设置 `MEDIACRAWLER_USE_PACKAGED=1`
 3. 在 `webui/` 目录 spawn `npm run dev`（Vite 5174）
 4. 健康检查通过后打开窗口加载 `http://localhost:5174/`
 
